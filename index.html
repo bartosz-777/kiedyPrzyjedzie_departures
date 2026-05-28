@@ -124,7 +124,7 @@ async function fetchDepartures() {
         
         if (data.rows && Array.isArray(data.rows)) {
             const directions = data.directions || {};
-            const stationName = data.station_name || 'Topolowa';
+            const stationName = data.station_name || '---';
             // Update the station name in the header
             const header = app.querySelector('h1');
             if (header) {
