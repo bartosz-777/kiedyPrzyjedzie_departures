@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #121212;
+            color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+
+        #app {
+            width: min(90vw, 600px);
+            padding: 24px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(12px);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 0.5fr 2fr 0.7fr;
+            gap: 6px;
+            align-items: center;
+        }
+        .header {
+            padding: 4px;
+            background: rgba(255, 255, 255, 0);
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        .cell {
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .label {
+            color: #a8a8a8;
+            font-size: 1rem;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .header_label {
+            color: #a8a8a8;
+            font-size: 1rem;
+            margin-bottom: 0px;
+            display: block;
+        }
+
+        h1 {
+            margin: 0 0 24px;
+            text-align: center;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>Topolowa</h1>
+    
+    <div class="row" style="margin-bottom: 4px;">
+        <div class="header">
+            <span class="header_label">Linia</span>
+        </div>
+        <div class="header">
+            <span class="header_label">Kierunek</span>
+        </div>
+        <div class="header">
+            <span class="header_label">Odjazd za</span>
+        </div>
+    </div>
+    <div class="row" style="margin-top: 4px;">
+        <div class="cell">
+            1
+        </div>
+        <div class="cell">
+            Młynska - Dworzec Główny
+        </div>
+        <div class="cell">
+            30
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchDepartures() {
+    try {
+        // Remove all dynamic rows (keep only header and first static row)
+        const app = document.getElementById('app');
+        const allRows = app.querySelectorAll('.row');
+        for (let i = 2; i < allRows.length; i++) {
+            allRows[i].remove();
+        }
+        
+        const params = new URLSearchParams(window.location.search);
+        const stationId = params.get('station_id');
+        const city = params.get('city');
+        const response = await fetch(`https://${city}.kiedyprzyjedzie.pl/api/departures/${stationId}`);
+        const data = await response.json();
+        
+        if (data.rows && Array.isArray(data.rows)) {
+            const directions = data.directions || {};
+            const stationName = data.station_name || 'Topolowa';
+            // Update the station name in the header
+            const header = app.querySelector('h1');
+            if (header) {
+                header.textContent = stationName;
+            }
+            
+            data.rows.forEach(row => {
+                const newRow = document.createElement('div');
+                newRow.className = 'row';
+                newRow.style.marginTop = '8px';
+                
+                const lineCell = document.createElement('div');
+                lineCell.className = 'cell';
+                lineCell.textContent = row.line_name || '';
+                
+                const directionCell = document.createElement('div');
+                directionCell.className = 'cell';
+                // Match direction_id with direction field from directions object
+                const directionName = directions[row.direction_id] || row.direction || '';
+                directionCell.textContent = directionName;
+                
+                const timeCell = document.createElement('div');
+                timeCell.className = 'cell';
+                if (row.at_stop) {
+                    const icon = document.createElement('i');
+                    icon.className = 'mdi mdi-bus-sign';
+                    icon.style.fontSize = '1.5rem';
+                    timeCell.appendChild(icon);
+                } else {
+                    if (row.is_estimated) {
+                        const icon = document.createElement('i');
+                        icon.className = 'mdi mdi-antenna';
+                        icon.style.marginRight = '8px';
+                        icon.style.color = '#00ff00';
+                        timeCell.appendChild(icon);
+                    }
+                    const timeText = document.createTextNode(row.time || '');
+                    timeCell.appendChild(timeText);
+                }
+                
+                newRow.appendChild(lineCell);
+                newRow.appendChild(directionCell);
+                newRow.appendChild(timeCell);
+                
+                app.appendChild(newRow);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching departures:', error);
+    }
+}
+
+// Fetch immediately and then every 50 seconds
+fetchDepartures();
+setInterval(fetchDepartures, 50000);
+</script>
+</body>
+</html>
